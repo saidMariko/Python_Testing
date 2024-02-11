@@ -7,7 +7,9 @@ def loadClubs():
         listOfClubs = json.load(c)['clubs']
         for club in listOfClubs:
             club['total_reserved'] = 0  # Initialiser 'total_reserved' pour chaque club
+            club['reserved'] = {}  # Initialiser 'reserved' pour chaque club
         return listOfClubs
+
 
 
 def loadCompetitions():
@@ -69,12 +71,12 @@ def purchasePlaces():
 
     placesRequired = int(places)
 
-    # Vérifier si l'utilisateur essaie de réserver un nombre négatif ou plus de 12 billets
+    # Vérifier si l'utilisateur essaie de réserver un nombre négatif ou plus de 12 billets pour une compétition spécifique
     if placesRequired <= 0:
         flash('Le nombre de billets doit être un nombre positif.')
         return render_template('welcome.html', club=club, competitions=competitions)
-    elif placesRequired > 12 or club['total_reserved'] + placesRequired > 12:
-        flash('Vous ne pouvez pas réserver plus de 12 billets au total.')
+    elif club['reserved'].get(competition_name, 0) + placesRequired > 12:
+        flash('Vous ne pouvez pas réserver plus de 12 billets pour une compétition spécifique.')
         return render_template('welcome.html', club=club, competitions=competitions)
 
     # Vérifier si le club a assez de points pour acheter les billets
@@ -84,10 +86,11 @@ def purchasePlaces():
 
     competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
     club['points'] = int(club['points'])-placesRequired  # Diminuer les points du club
-    club['total_reserved'] += placesRequired  # Mettre à jour le total des places réservées
+    club['reserved'][competition_name] = club['reserved'].get(competition_name, 0) + placesRequired  # Mettre à jour le total des places réservées pour cette compétition
 
     flash('Réservation réussie !')
     return render_template('welcome.html', club=club, competitions=competitions)
+
 
 
 
