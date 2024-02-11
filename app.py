@@ -4,8 +4,10 @@ from flask import Flask,render_template,request,redirect,flash,url_for
 
 def loadClubs():
     with open('clubs.json') as c:
-         listOfClubs = json.load(c)['clubs']
-         return listOfClubs
+        listOfClubs = json.load(c)['clubs']
+        for club in listOfClubs:
+            club['total_reserved'] = 0  # Initialiser 'total_reserved' pour chaque club
+        return listOfClubs
 
 
 def loadCompetitions():
@@ -36,7 +38,7 @@ def showSummary():
         return render_template('welcome.html', club=club, competitions=competitions)
     else:
         flash('Veuillez entrer un email.', 'error')
-        return redirect(url_for('index'))
+        return redirect(url_for('index'))  # Redirige vers la page d'accueil
 
 
 @app.route('/book/<competition>/<club>')
@@ -52,12 +54,45 @@ def book(competition,club):
 
 @app.route('/purchasePlaces',methods=['POST'])
 def purchasePlaces():
-    competition = [c for c in competitions if c['name'] == request.form['competition']][0]
-    club = [c for c in clubs if c['name'] == request.form['club']][0]
-    placesRequired = int(request.form['places'])
+    competition_name = request.form.get('competition')
+    club_name = request.form.get('club')
+    places = request.form.get('places')
+
+    # Recherche de la compétition et du club
+    competition = next((c for c in competitions if c['name'] == competition_name), None)
+    club = next((c for c in clubs if c['name'] == club_name), None)
+
+    # Vérifier si l'utilisateur a fourni toutes les données nécessaires
+    if not competition or not club or not places:
+        flash('Veuillez fournir toutes les informations nécessaires.')
+        return render_template('welcome.html', club=club, competitions=competitions)
+
+    placesRequired = int(places)
+
+    # Vérifier si l'utilisateur essaie de réserver un nombre négatif ou plus de 12 billets
+    if placesRequired <= 0:
+        flash('Le nombre de billets doit être un nombre positif.')
+        return render_template('welcome.html', club=club, competitions=competitions)
+    elif placesRequired > 12 or club['total_reserved'] + placesRequired > 12:
+        flash('Vous ne pouvez pas réserver plus de 12 billets au total.')
+        return render_template('welcome.html', club=club, competitions=competitions)
+
+    # Vérifier si le club a assez de points pour acheter les billets
+    if int(club['points']) < placesRequired:
+        flash('Vous n\'avez pas assez de points pour acheter ces billets.')
+        return render_template('welcome.html', club=club, competitions=competitions)
+
     competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
-    flash('Great-booking complete!')
+    club['points'] = int(club['points'])-placesRequired  # Diminuer les points du club
+    club['total_reserved'] += placesRequired  # Mettre à jour le total des places réservées
+
+    flash('Réservation réussie !')
     return render_template('welcome.html', club=club, competitions=competitions)
+
+
+
+
+
 
 
 # TODO: Add route for points display
