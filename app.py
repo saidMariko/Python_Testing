@@ -1,5 +1,7 @@
 import json
 from flask import Flask,render_template,request,redirect,flash,url_for
+import datetime,shutil
+
 
 
 def loadClubs():
@@ -10,7 +12,43 @@ def loadClubs():
             club['reserved'] = {}  # Initialiser 'reserved' pour chaque club
         return listOfClubs
 
+def loadArchivedCompetitions():
+    with open('Archivage.json') as archive:
+        listOfCompetitions = json.load(archive)['competitions']
+        for competition in listOfCompetitions:
+            competition['numberOfPlaces'] = int(competition['numberOfPlaces'])  # Convertir à un entier
+            # Convertir la date de la compétition en objet datetime
+            competition['date'] = datetime.datetime.strptime(competition['date'], '%Y-%m-%d %H:%M:%S')
+        return listOfCompetitions
 
+
+def archive_past_competitions():
+    with open('competitions.json', 'r+') as comps:
+        competitions = json.load(comps)['competitions']
+        comps.seek(0)
+        comps.truncate()
+
+        current_time = datetime.datetime.now()
+        active_competitions = [comp for comp in competitions if datetime.datetime.strptime(comp['date'], '%Y-%m-%d %H:%M:%S') > current_time]
+        archived_competitions = [comp for comp in competitions if datetime.datetime.strptime(comp['date'], '%Y-%m-%d %H:%M:%S') <= current_time]
+
+        json.dump({'competitions': active_competitions}, comps)
+
+    with open('Archivage.json', 'r+') as archive:
+        if archive.read():
+            # Si Archivage.json n'est pas vide, chargez les compétitions archivées existantes et ajoutez les nouvelles
+            archive.seek(0)
+            existing_archived_competitions = json.load(archive)['competitions']
+            archive.seek(0)
+            archive.truncate()
+            json.dump({'competitions': existing_archived_competitions + archived_competitions}, archive)
+        else:
+            # Si Archivage.json est vide, écrivez simplement les nouvelles compétitions archivées
+            json.dump({'competitions': archived_competitions}, archive)
+
+    pass
+# Appeler la fonction pour archiver les compétitions passées
+archive_past_competitions()
 
 
 def loadCompetitions():
@@ -25,15 +63,25 @@ app.secret_key = 'something_special'
 competitions = loadCompetitions()
 clubs = loadClubs()
 
+@app.route('/archive')
+def archive():
+    # Charger les compétitions archivées
+    with open('Archivage.json') as archive:
+        archived_competitions = json.load(archive)['competitions']
+        for competition in archived_competitions:
+            competition['date'] = datetime.datetime.strptime(competition['date'], '%Y-%m-%d %H:%M:%S')
+
+    # Rendre la page d'archivage
+    return render_template('archive.html', competitions=archived_competitions)
+
+
 @app.route('/')
 def index():
-    return render_template('index.html', clubs=clubs , competitions=competitions)
-
+    return render_template('index.html', clubs=clubs)
 
 @app.route('/pointsDisplay')
 def pointsDisplay():
     return render_template('points_display.html', clubs=clubs)
-
 
 
 @app.route('/showSummary', methods=['POST'])
@@ -53,10 +101,10 @@ def showSummary():
 
 @app.route('/book/<competition>/<club>')
 def book(competition,club):
-    foundClub = [c for c in clubs if c['name'] == club][0]
-    foundCompetition = [c for c in competitions if c['name'] == competition][0]
+    foundClub = [c for c in clubs if c['name'] == club]
+    foundCompetition = [c for c in competitions if c['name'] == competition]
     if foundClub and foundCompetition:
-        return render_template('booking.html',club=foundClub,competition=foundCompetition)
+        return render_template('booking.html',club=foundClub[0],competition=foundCompetition[0])
     else:
         flash("Something went wrong-please try again")
         return render_template('welcome.html', club=club, competitions=competitions)

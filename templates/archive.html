@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive des compétitions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+            color: #007bff;
+            margin-top: 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        li {
+            background-color: #fff;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        p {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Archive des compétitions</h1>
+    <ul>
+        {% for competition in competitions %}
+        <li>
+            <h2>{{ competition['name'] }}</h2>
+            <p>Date : {{ competition['date'].strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            <p>Nombre de places : {{ competition['numberOfPlaces'] }}</p>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
