@@ -110,8 +110,18 @@
             <input type="email" name="email" id="email" required>
             <button type="submit">Enter</button>
         </form>
-        
-        
+        <table>
+            <tr>
+                <th>Club</th>
+                <th>Points</th>
+            </tr>
+            {% for club in clubs %}
+            <tr>
+                <td>{{ club['name'] }}</td>
+                <td>{{ club['points'] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
     </div>
 </body>
 </html>
